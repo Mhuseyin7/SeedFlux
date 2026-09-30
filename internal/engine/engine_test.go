@@ -62,3 +62,36 @@ func TestSQLiteFixtureGenerateValidateAndCleanup(t *testing.T) {
 		t.Fatalf("cleanup count=%d err=%v", count, err)
 	}
 }
+
+func TestSQLiteFixtureConfiguration(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "fixture.db")
+	a, err := adapters.OpenSQLite(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer a.DB().Close()
+	b, err := os.ReadFile(filepath.Join("..", "..", "fixtures", "sqlite", "ecommerce.sql"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, statement := range strings.Split(string(b), ";") {
+		if strings.TrimSpace(statement) == "" {
+			continue
+		}
+		if _, err = a.DB().ExecContext(ctx, statement); err != nil {
+			t.Fatalf("fixture: %v", err)
+		}
+	}
+	c, err := config.Load(filepath.Join("..", "..", "fixtures", "seedflux.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := a.Inspect(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = Generate(ctx, a, s, c, false); err != nil {
+		t.Fatal(err)
+	}
+}
