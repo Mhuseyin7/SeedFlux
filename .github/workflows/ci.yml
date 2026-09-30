@@ -10,7 +10,7 @@ jobs:
       - run: gofmt -l . | (! grep .)
       - run: go vet ./...
       - run: go test -race ./...
-      - run: go build ./cmd/seedflux
+      - run: mkdir -p dist && go build -o dist/seedflux ./cmd/seedflux
   sqlite-fixture:
     runs-on: ubuntu-latest
     needs: test
