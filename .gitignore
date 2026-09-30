@@ -1,0 +1,7 @@
+seedflux
+seedflux.exe
+dist/
+*.db
+*.sqlite
+coverage.out
+seedflux.yml
