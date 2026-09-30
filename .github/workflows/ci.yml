@@ -19,4 +19,4 @@ jobs:
       - uses: actions/setup-go@v5
         with: { go-version: '1.25.x' }
       - name: Run SQLite fixture integration tests
-        run: go test ./internal/engine -run '^TestSQLiteFixture' -count=1
+        run: go test ./internal/engine -run '^TestSQLiteFixtureGenerateValidateAndCleanup$' -count=1
