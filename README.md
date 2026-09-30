@@ -217,6 +217,12 @@ go vet ./...
 go build ./cmd/seedflux
 ```
 
+Alternatif olarak tüm local quality gate'leri tek komutla çalıştırabilirsiniz:
+
+```bash
+make check
+```
+
 SQLite e-commerce fixture:
 
 ```text
