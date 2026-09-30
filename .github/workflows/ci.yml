@@ -18,7 +18,5 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with: { go-version: stable }
-      - run: sudo apt-get update && sudo apt-get install -y sqlite3
-      - run: sqlite3 fixture.db < fixtures/sqlite/ecommerce.sql
-      - run: go run ./cmd/seedflux generate --config fixtures/seedflux.yml --url fixture.db
-      - run: go run ./cmd/seedflux validate --config fixtures/seedflux.yml --url fixture.db
+      - name: Run SQLite fixture integration tests
+        run: go test ./internal/engine -run '^TestSQLiteFixture' -count=1
