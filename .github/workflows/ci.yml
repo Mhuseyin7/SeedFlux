@@ -11,7 +11,8 @@ jobs:
         run: test -z "$(gofmt -l $(find . -name '*.go' -not -path './vendor/*'))"
       - run: go vet ./...
       - run: go test -race ./...
-      - run: mkdir -p dist && go build -buildvcs=false -o dist/seedflux ./cmd/seedflux
+      - name: Compile CLI
+        run: go test -run '^$' ./cmd/seedflux
   sqlite-fixture:
     runs-on: ubuntu-latest
     needs: test
