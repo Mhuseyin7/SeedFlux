@@ -3,10 +3,17 @@ package safety
 import (
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 )
 
+var sensitiveDSNValue = regexp.MustCompile(`(?i)(password|passwd|pwd|token|secret|api[_-]?key)=([^&\s]+)`)
+
 func Redact(raw string) string {
+	redacted := sensitiveDSNValue.ReplaceAllString(raw, "$1=***")
+	if redacted != raw {
+		raw = redacted
+	}
 	u, e := url.Parse(raw)
 	if e == nil || u.Host == "" {
 		return raw
