@@ -30,7 +30,7 @@ func (a *mysqlAdapter) Inspect(ctx context.Context) (*schema.Schema, error) {
 	defer r.Close()
 	for r.Next() {
 		var n string
-		r.Scan(&n)
+		if e = r.Scan(&n); e != nil { return nil, e }
 		t := &schema.Table{Name: n}
 		c, e := a.db.QueryContext(ctx, `SELECT column_name,column_type,is_nullable,COALESCE(column_default,''),extra FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name=? ORDER BY ordinal_position`, n)
 		if e != nil {
@@ -38,7 +38,7 @@ func (a *mysqlAdapter) Inspect(ctx context.Context) (*schema.Schema, error) {
 		}
 		for c.Next() {
 			var name, typ, nullable, def, extra string
-			c.Scan(&name, &typ, &nullable, &def, &extra)
+			if e = c.Scan(&name, &typ, &nullable, &def, &extra); e != nil { c.Close(); return nil, e }
 			t.Columns = append(t.Columns, &schema.Column{Name: name, Type: typ, Nullable: nullable == "YES", Default: def, Generated: strings.Contains(extra, "GENERATED"), Identity: strings.Contains(extra, "auto_increment")})
 		}
 		c.Close()
@@ -57,7 +57,7 @@ func mysqlConstraints(ctx context.Context, db *sql.DB, t *schema.Table, n string
 	defer r.Close()
 	for r.Next() {
 		var name, kind string
-		r.Scan(&name, &kind)
+		if e = r.Scan(&name, &kind); e != nil { return e }
 		cr, e := db.QueryContext(ctx, `SELECT column_name,referenced_table_name,referenced_column_name FROM information_schema.key_column_usage WHERE table_schema=DATABASE() AND table_name=? AND constraint_name=? ORDER BY ordinal_position`, n, name)
 		if e != nil {
 			return e
@@ -67,7 +67,7 @@ func mysqlConstraints(ctx context.Context, db *sql.DB, t *schema.Table, n string
 		for cr.Next() {
 			var c string
 			var rt, rc sql.NullString
-			cr.Scan(&c, &rt, &rc)
+			if e = cr.Scan(&c, &rt, &rc); e != nil { cr.Close(); return e }
 			cols = append(cols, c)
 			if rt.Valid {
 				f.RefTable = rt.String

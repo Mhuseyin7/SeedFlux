@@ -30,7 +30,7 @@ func (a *pgAdapter) Inspect(ctx context.Context) (*schema.Schema, error) {
 	defer r.Close()
 	for r.Next() {
 		var ns, n string
-		r.Scan(&ns, &n)
+		if e = r.Scan(&ns, &n); e != nil { return nil, e }
 		t := &schema.Table{Schema: ns, Name: n}
 		c, e := a.db.QueryContext(ctx, `SELECT column_name,data_type,is_nullable,column_default,is_generated FROM information_schema.columns WHERE table_schema=$1 AND table_name=$2 ORDER BY ordinal_position`, ns, n)
 		if e != nil {
@@ -38,7 +38,7 @@ func (a *pgAdapter) Inspect(ctx context.Context) (*schema.Schema, error) {
 		}
 		for c.Next() {
 			var name, typ, nullable, def, gen string
-			c.Scan(&name, &typ, &nullable, &def, &gen)
+			if e = c.Scan(&name, &typ, &nullable, &def, &gen); e != nil { c.Close(); return nil, e }
 			t.Columns = append(t.Columns, &schema.Column{Name: name, Type: typ, Nullable: nullable == "YES", Default: def, Generated: gen == "ALWAYS", Identity: strings.Contains(def, "nextval(")})
 		}
 		c.Close()

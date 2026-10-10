@@ -46,7 +46,7 @@ func (a *sqliteAdapter) Inspect(ctx context.Context) (*schema.Schema, error) {
 		if e != nil {
 			return nil, e
 		}
-		for cr.Next() {
+			for cr.Next() {
 			var cid, pk, hidden int
 			var cn, typ string
 			var notnull int
@@ -65,6 +65,7 @@ func (a *sqliteAdapter) Inspect(ctx context.Context) (*schema.Schema, error) {
 			}
 		}
 		cr.Close()
+		if e = cr.Err(); e != nil { return nil, e }
 		fr, e := a.db.QueryContext(ctx, `PRAGMA foreign_key_list(`+a.Quote(name)+`)`)
 		if e != nil {
 			return nil, e
@@ -87,6 +88,7 @@ func (a *sqliteAdapter) Inspect(ctx context.Context) (*schema.Schema, error) {
 			f.RefColumns = append(f.RefColumns, to)
 		}
 		fr.Close()
+		if e = fr.Err(); e != nil { return nil, e }
 		t.Checks = checks(ddl) // SQLite exposes unique indexes reliably.
 		applyCheckEnums(t)
 		ir, e := a.db.QueryContext(ctx, `PRAGMA index_list(`+a.Quote(name)+`)`)
@@ -113,15 +115,17 @@ func (a *sqliteAdapter) Inspect(ctx context.Context) (*schema.Schema, error) {
 			for xr.Next() {
 				var n, cid int
 				var cn string
-				xr.Scan(&n, &cid, &cn)
+				if e = xr.Scan(&n, &cid, &cn); e != nil { xr.Close(); ir.Close(); return nil, e }
 				u = append(u, cn)
 			}
 			xr.Close()
+			if e = xr.Err(); e != nil { ir.Close(); return nil, e }
 			if len(u) > 0 {
 				t.Uniques = append(t.Uniques, u)
 			}
 		}
 		ir.Close()
+		if e = ir.Err(); e != nil { return nil, e }
 		s.Tables = append(s.Tables, t)
 	}
 	return s, rows.Err()
