@@ -2,7 +2,9 @@ package engine
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/seedflux/seedflux/internal/adapters"
@@ -33,7 +35,9 @@ func Generate(ctx context.Context, a adapters.Adapter, s *schema.Schema, c *conf
 	if e != nil {
 		return Result{}, e
 	}
-	r := Result{RunID: fmt.Sprintf("sf_%x", uint64(time.Now().UnixNano())), Counts: map[string]int{}, Fingerprint: s.Fingerprint(), Plan: p, Samples: map[string]writer.Row{}}
+	runID, err := newRunID()
+	if err != nil { return Result{}, err }
+	r := Result{RunID: runID, Counts: map[string]int{}, Fingerprint: s.Fingerprint(), Plan: p, Samples: map[string]writer.Row{}}
 	counts := countsFor(s, c, p, c.Seed)
 	for k, v := range counts {
 		r.Counts[k] = v
@@ -79,6 +83,12 @@ func Generate(ctx context.Context, a adapters.Adapter, s *schema.Schema, c *conf
 		return r, e
 	}
 	return r, nil
+}
+
+func newRunID() (string, error) {
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil { return "", fmt.Errorf("create secure run id: %w", err) }
+	return "sf_" + hex.EncodeToString(b[:]), nil
 }
 
 // Rows builds the exact deterministic, FK-consistent dataset used by generate.
