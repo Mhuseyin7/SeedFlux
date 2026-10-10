@@ -274,6 +274,15 @@ func Validate(ctx context.Context, a adapters.Adapter, s *schema.Schema) (map[st
 		}
 	}
 	for _, t := range s.Tables {
+		for _, fk := range t.ForeignKeys {
+			parent := s.Table(fk.RefTable)
+			if parent == nil || len(fk.Columns) != len(fk.RefColumns) || len(fk.Columns) == 0 { continue }
+			join := make([]string, len(fk.Columns))
+			for i, col := range fk.Columns { join[i] = "c."+a.Quote(col)+" = p."+a.Quote(fk.RefColumns[i]) }
+			q := "SELECT COUNT(*) FROM "+tableSQL(a, t)+" c LEFT JOIN "+tableSQL(a, parent)+" p ON "+strings.Join(join, " AND ")+" WHERE p."+a.Quote(fk.RefColumns[0])+" IS NULL"
+			for _, col := range fk.Columns { q += " AND c."+a.Quote(col)+" IS NOT NULL" }
+			var bad int; if e := a.DB().QueryRowContext(ctx, q).Scan(&bad); e != nil { return nil, e }; out["foreign_keys"] += bad
+		}
 		for _, u := range t.Uniques {
 			if len(u) == 0 {
 				continue
@@ -283,14 +292,24 @@ func Validate(ctx context.Context, a adapters.Adapter, s *schema.Schema) (map[st
 				q[i] = a.Quote(x)
 			}
 			var bad int
-			e := a.DB().QueryRowContext(ctx, "SELECT COUNT(*) FROM (SELECT "+strings.Join(q, ",")+" FROM "+a.Quote(t.Name)+" GROUP BY "+strings.Join(q, ",")+" HAVING COUNT(*)>1)").Scan(&bad)
+			e := a.DB().QueryRowContext(ctx, "SELECT COUNT(*) FROM (SELECT "+strings.Join(q, ",")+" FROM "+tableSQL(a, t)+" GROUP BY "+strings.Join(q, ",")+" HAVING COUNT(*)>1)").Scan(&bad)
 			if e != nil {
 				return nil, e
 			}
 			out["unique"] += bad
 		}
+		for _, check := range t.Checks {
+			var bad int
+			if e := a.DB().QueryRowContext(ctx, "SELECT COUNT(*) FROM "+tableSQL(a, t)+" WHERE NOT ("+check+")").Scan(&bad); e != nil { return nil, e }
+			out["checks"] += bad
+		}
 	}
 	return out, nil
+}
+
+func tableSQL(a adapters.Adapter, t *schema.Table) string {
+	if t.Schema != "" && a.Dialect() != "sqlite" { return a.Quote(t.Schema)+"."+a.Quote(t.Name) }
+	return a.Quote(t.Name)
 }
 func Cleanup(ctx context.Context, a adapters.Adapter, s *schema.Schema, runID string) error {
 	p, e := Plan(s)
@@ -332,7 +351,7 @@ func Cleanup(ctx context.Context, a adapters.Adapter, s *schema.Schema, runID st
 				where = append(where, a.Quote(col)+"="+param(a, j+1))
 				args = append(args, key[col])
 			}
-			if _, e = tx.ExecContext(ctx, "DELETE FROM "+a.Quote(t.Name)+" WHERE "+strings.Join(where, " AND "), args...); e != nil {
+			if _, e = tx.ExecContext(ctx, "DELETE FROM "+tableSQL(a, t)+" WHERE "+strings.Join(where, " AND "), args...); e != nil {
 				rows.Close()
 				return e
 			}
