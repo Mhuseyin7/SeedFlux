@@ -68,6 +68,6 @@ func insertBatch(ctx context.Context, tx *sql.Tx, a adapters.Adapter, t *schema.
 	for i, c := range cols {
 		qcols[i] = a.Quote(c)
 	}
-	_, e := tx.ExecContext(ctx, "INSERT INTO "+a.Quote(t.Name)+" ("+strings.Join(qcols, ",")+") VALUES "+strings.Join(groups, ","), args...)
+	_, e := tx.ExecContext(ctx, "INSERT INTO "+a.QuoteTable(t.Schema, t.Name)+" ("+strings.Join(qcols, ",")+") VALUES "+strings.Join(groups, ","), args...)
 	return e
 }

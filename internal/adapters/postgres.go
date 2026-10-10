@@ -19,6 +19,7 @@ func OpenPostgres(dsn string) (Adapter, error) {
 func (a *pgAdapter) Dialect() string                          { return "postgres" }
 func (a *pgAdapter) DB() *sql.DB                              { return a.db }
 func (a *pgAdapter) Quote(s string) string                    { return `"` + strings.ReplaceAll(s, `"`, `""`) + `"` }
+func (a *pgAdapter) QuoteTable(schema, table string) string   { if schema == "" { return a.Quote(table) }; return a.Quote(schema)+"."+a.Quote(table) }
 func (a *pgAdapter) Begin(c context.Context) (*sql.Tx, error) { return a.db.BeginTx(c, nil) }
 func (a *pgAdapter) Inspect(ctx context.Context) (*schema.Schema, error) {
 	s := &schema.Schema{Dialect: a.Dialect()}

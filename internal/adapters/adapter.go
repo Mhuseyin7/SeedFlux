@@ -18,6 +18,7 @@ type Adapter interface {
 	DB() *sql.DB
 	Inspect(context.Context) (*schema.Schema, error)
 	Quote(string) string
+	QuoteTable(schema, table string) string
 	Begin(context.Context) (*sql.Tx, error)
 }
 

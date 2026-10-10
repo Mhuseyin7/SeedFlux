@@ -28,6 +28,7 @@ func OpenSQLite(dsn string) (Adapter, error) {
 func (a *sqliteAdapter) Dialect() string                          { return "sqlite" }
 func (a *sqliteAdapter) DB() *sql.DB                              { return a.db }
 func (a *sqliteAdapter) Quote(s string) string                    { return `"` + strings.ReplaceAll(s, `"`, `""`) + `"` }
+func (a *sqliteAdapter) QuoteTable(schema, table string) string   { return a.Quote(table) }
 func (a *sqliteAdapter) Begin(c context.Context) (*sql.Tx, error) { return a.db.BeginTx(c, nil) }
 func (a *sqliteAdapter) Inspect(ctx context.Context) (*schema.Schema, error) {
 	s := &schema.Schema{Dialect: a.Dialect()}

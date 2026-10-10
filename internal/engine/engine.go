@@ -308,8 +308,7 @@ func Validate(ctx context.Context, a adapters.Adapter, s *schema.Schema) (map[st
 }
 
 func tableSQL(a adapters.Adapter, t *schema.Table) string {
-	if t.Schema != "" && a.Dialect() != "sqlite" { return a.Quote(t.Schema)+"."+a.Quote(t.Name) }
-	return a.Quote(t.Name)
+	return a.QuoteTable(t.Schema, t.Name)
 }
 func Cleanup(ctx context.Context, a adapters.Adapter, s *schema.Schema, runID string) error {
 	p, e := Plan(s)

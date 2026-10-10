@@ -20,6 +20,7 @@ func OpenMySQL(dsn string) (Adapter, error) {
 func (a *mysqlAdapter) Dialect() string                          { return "mysql" }
 func (a *mysqlAdapter) DB() *sql.DB                              { return a.db }
 func (a *mysqlAdapter) Quote(s string) string                    { return "`" + strings.ReplaceAll(s, "`", "``") + "`" }
+func (a *mysqlAdapter) QuoteTable(schema, table string) string   { if schema == "" { return a.Quote(table) }; return a.Quote(schema)+"."+a.Quote(table) }
 func (a *mysqlAdapter) Begin(c context.Context) (*sql.Tx, error) { return a.db.BeginTx(c, nil) }
 func (a *mysqlAdapter) Inspect(ctx context.Context) (*schema.Schema, error) {
 	s := &schema.Schema{Dialect: a.Dialect()}
